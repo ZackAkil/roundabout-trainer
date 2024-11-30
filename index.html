@@ -48,15 +48,6 @@
       }
 
       function create() {
-        // Create roundabout object
-        // const roundabout = new Roundabout(
-        //   this,
-        //   (x = 400),
-        //   (y = 300),
-        //   (innerRadius = 100),
-        //   (innerRadius = 150)
-        // );
-
         const roundabout = new RoundaboutImage(
           this,
           400,
@@ -74,10 +65,10 @@
 
         cursors = this.input.keyboard.createCursorKeys();
 
-        this.input.keyboard.on("keydown-I", () => {
+        this.input.keyboard.on("keydown-Z", () => {
           car.toggleLeftIndicator();
         });
-        this.input.keyboard.on("keydown-O", () => {
+        this.input.keyboard.on("keydown-X", () => {
           car.toggleRightIndicator();
         });
 
@@ -96,11 +87,11 @@
         // this.physics.add.overlap(car.sprite, this.points, hitPoint, null, this);
       }
 
-      function hitPoint(car, point) {
-        point.destroy();
-        score += 10;
-        scoreText.setText("Score: " + score);
-      }
+      //   function hitPoint(car, point) {
+      //     point.destroy();
+      //     score += 10;
+      //     scoreText.setText("Score: " + score);
+      //   }
 
       function update() {
         if (!car) return;
@@ -108,14 +99,14 @@
       }
 
       class Car {
-        maxSpeed = 5;
-        acceleration = 0.1;
+        maxSpeed = 2;
+        acceleration = 0.05;
         deceleration = 0.01;
         brakingPower = 0.1;
-        turningSpeed = 0.5;
-        turningDamper = 0.1;
-        maxTurningAngle = 4;
-        minTurningAngle = -4;
+        turningSpeed = 0.1;
+        turningDamper = 0.05;
+        maxTurningAngle = 3;
+        minTurningAngle = -3;
 
         constructor(scene, x, y, texture, scale) {
           this.scene = scene;
