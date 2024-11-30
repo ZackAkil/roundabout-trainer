@@ -1,124 +1,174 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Roundabout Training</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
     <style>
-        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f0f0; }
+      body {
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: #f0f0f0;
+      }
     </style>
-</head>
-<body>
-<script>
-const config = {
-    type: Phaser.AUTO,
-    width: 600,
-    height: 600,
-    backgroundColor: '#FFFFFF', // Add this line to set white background
-    physics: {
-        default: 'arcade',
-        arcade: {
-            debug: false
+  </head>
+  <body>
+    <script>
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        backgroundColor: "#FFFFFF", // Add this line to set white background
+        physics: {
+          default: "arcade",
+          arcade: {
+            debug: false,
+          },
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
+
+      const game = new Phaser.Game(config);
+      let car;
+      let cursors;
+      let score = 0;
+      let scoreText;
+
+      function preload() {
+        this.load.image("car", "assets/car.png", {
+          width: 10,
+          height: 20,
+        });
+      }
+
+      function create() {
+        // Create roundabout object
+        const roundabout = new Roundabout(
+          this,
+          (x = 400),
+          (y = 300),
+          (innerRadius = 100),
+          (innerRadius = 150)
+        );
+
+        car = new Car(this, 400, 550, "car");
+
+        scoreText = this.add.text(16, 16, "Score: 0", {
+          fontSize: "32px",
+          fill: "#000",
+        });
+
+        // Setup keyboard controls
+        cursors = this.input.keyboard.createCursorKeys();
+      }
+
+      function update() {
+        if (!car) return;
+        car.update(cursors);
+      }
+
+      class Car {
+        maxSpeed = 5;
+        acceleration = 0.1;
+        deceleration = 0.01;
+        brakingPower = 0.1;
+        turningSpeed = 0.2;
+        maxTurningAngle = 5;
+        minTurningAngle = -5;
+
+        constructor(scene, x, y, texture) {
+          this.sprite = scene.add.sprite(x, y, texture);
+          this.sprite.setScale(0.1);
+          this.sprite.angle = 0; // Start facing north
+          this.speed = 0;
+          this.currentTurningAngle = 0;
         }
-    },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
-};
 
-const game = new Phaser.Game(config);
-let car;
-let cursors;
-let centerPoint;
-let score = 0;
-let scoreText;
-let wrongWayText;
+        update(cursors) {
+          // Handle acceleration
+          if (cursors.up.isDown) {
+            this.speed = Math.min(
+              this.maxSpeed,
+              this.speed + this.acceleration
+            );
+          } else {
+            this.speed = Math.max(0, this.speed - this.deceleration);
+          }
+          // Handle braking
+          if (cursors.down.isDown) {
+            this.speed = Math.max(0, this.speed - this.brakingPower);
+          }
 
-let speed = 0;
-const maxSpeed = 5;
-const acceleration = 0.2;
-const deceleration = 0.1;
+          // Apply movement with current speed
+          if (this.speed > 0) {
+            const rad = Phaser.Math.DegToRad(this.sprite.angle - 90);
+            this.sprite.x += Math.cos(rad) * this.speed;
+            this.sprite.y += Math.sin(rad) * this.speed;
+          }
 
-function preload() {
-
-    this.load.image('car', 'assets/car.png', {
-        width: 10,
-        height: 20
-    });
-    console.log("loaded car")
-
-}
-
-function create() {
-    // Draw roundabout
-    const graphics = this.add.graphics();
-    graphics.lineStyle(4, 0x666666);
-    graphics.strokeCircle(400, 300, 100);
-    graphics.strokeCircle(400, 300, 150);
-    
-    // Add center point for rotation reference
-    centerPoint = new Phaser.Geom.Point(400, 300);
-    
-    // Create car
-    car = this.add.sprite(400, 450, 'car');
-    car.setScale(0.1)
-    car.angle = -90; // Start facing left
-    
-    // Add score text
-    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
-    wrongWayText = this.add.text(400, 50, '', { fontSize: '32px', fill: '#ff0000' });
-    wrongWayText.setOrigin(0.5);
-    
-    // Setup keyboard controls
-    cursors = this.input.keyboard.createCursorKeys();
-}
-
-function update() {
-    if (!car) return;
-    
-    const angleToCenter = Phaser.Math.Angle.Between(car.x, car.y, centerPoint.x, centerPoint.y);
-    const distanceToCenter = Phaser.Math.Distance.Between(car.x, car.y, centerPoint.x, centerPoint.y);
-    
-    // Handle acceleration
-    if (cursors.up.isDown) {
-        speed = Math.min(maxSpeed, speed + acceleration);
-    } else {
-        // Decelerate when not accelerating
-        speed = Math.max(0, speed - deceleration);
-    }
-    
-    // Apply movement with current speed
-    if (speed > 0) {
-        const rad = Phaser.Math.DegToRad(car.angle - 90);
-        car.x += Math.cos(rad) * speed;
-        car.y += Math.sin(rad) * speed;
-        
-        // Check if in roundabout bounds
-        if (distanceToCenter > 100 && distanceToCenter < 150) {
-            const carDirection = Phaser.Math.Angle.Wrap(Phaser.Math.DegToRad(car.angle - 90));
-            const tangentAngle = angleToCenter + Math.PI/2;
-            const angleDiff = Phaser.Math.Angle.Wrap(carDirection - tangentAngle);
-            
-            if (Math.abs(angleDiff) < Math.PI/2) {
-                score += 1;
-                scoreText.setText('Score: ' + score);
-                wrongWayText.setText('');
-            } else {
-                wrongWayText.setText('Wrong Way!');
-            }
+          // Handle turning
+          if (cursors.left.isDown) {
+            this.currentTurningAngle = Math.max(
+              this.minTurningAngle,
+              this.currentTurningAngle - this.turningSpeed
+            );
+          }
+          if (cursors.right.isDown) {
+            this.currentTurningAngle = Math.min(
+              this.maxTurningAngle,
+              this.currentTurningAngle + this.turningSpeed
+            );
+          }
+          this.sprite.angle +=
+            this.currentTurningAngle * (this.speed / this.maxSpeed);
         }
-    }
-    
-    // Handle turning
-    if (cursors.left.isDown) {
-        // Make turning speed relative to current speed
-        car.angle -= 3 * (speed / maxSpeed);
-    }
-    if (cursors.right.isDown) {
-        car.angle += 3 * (speed / maxSpeed);
-    }
-}
-</script>
-</body>
+      }
+
+      class Roundabout {
+        constructor(scene, x, y, innerRadius, outerRadius) {
+          this.scene = scene;
+          this.x = x;
+          this.y = y;
+          this.innerRadius = innerRadius;
+          this.outerRadius = outerRadius;
+          this.graphics = scene.add.graphics();
+          this.drawRoundabout();
+        }
+
+        drawRoundabout() {
+          // Draw inner circle
+          this.graphics.lineStyle(4, 0x666666);
+          this.graphics.strokeCircle(this.x, this.y, this.innerRadius);
+
+          // Draw outer circle
+          this.graphics.lineStyle(4, 0x666666);
+          this.graphics.strokeCircle(this.x, this.y, this.outerRadius);
+
+          // Draw exits
+          this.graphics.lineStyle(4, 0x666666);
+          this.graphics.moveTo(this.x, this.y - this.outerRadius);
+          this.graphics.lineTo(this.x, this.y - this.outerRadius - 50);
+          this.graphics.strokePath();
+
+          this.graphics.moveTo(this.x + this.outerRadius, this.y);
+          this.graphics.lineTo(this.x + this.outerRadius + 50, this.y);
+          this.graphics.strokePath();
+
+          this.graphics.moveTo(this.x, this.y + this.outerRadius);
+          this.graphics.lineTo(this.x, this.y + this.outerRadius + 50);
+          this.graphics.strokePath();
+
+          this.graphics.moveTo(this.x - this.outerRadius, this.y);
+          this.graphics.lineTo(this.x - this.outerRadius - 50, this.y);
+          this.graphics.strokePath();
+        }
+      }
+    </script>
+  </body>
 </html>
