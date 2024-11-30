@@ -44,19 +44,28 @@
         this.load.image("car", "assets/car.png");
         this.load.image("point", "assets/point.png");
         this.load.image("indicator", "assets/indicator.png");
+        this.load.image("roundabout", "assets/roundabout.png");
       }
 
       function create() {
         // Create roundabout object
-        const roundabout = new Roundabout(
+        // const roundabout = new Roundabout(
+        //   this,
+        //   (x = 400),
+        //   (y = 300),
+        //   (innerRadius = 100),
+        //   (innerRadius = 150)
+        // );
+
+        const roundabout = new RoundaboutImage(
           this,
-          (x = 400),
-          (y = 300),
-          (innerRadius = 100),
-          (innerRadius = 150)
+          400,
+          300,
+          "roundabout",
+          0.5
         );
 
-        car = new Car(this, 400, 550, "car");
+        car = new Car(this, 400, 550, "car", (scale = 0.07));
 
         scoreText = this.add.text(16, 16, "Score: 0", {
           fontSize: "32px",
@@ -72,19 +81,19 @@
           car.toggleRightIndicator();
         });
 
-        // Create points around the roundabout
-        this.points = this.physics.add.group({
-          key: "point",
-          repeat: 7,
-          setXY: { x: 400, y: 300, stepX: 100, stepY: 0 },
-        });
+        // // Create points around the roundabout
+        // this.points = this.physics.add.group({
+        //   key: "point",
+        //   repeat: 7,
+        //   setXY: { x: 400, y: 300, stepX: 100, stepY: 0 },
+        // });
 
-        this.points.children.iterate(function (child) {
-          child.setCircle(2); // Set the size of the points
-        });
+        // this.points.children.iterate(function (child) {
+        //   child.setCircle(2); // Set the size of the points
+        // });
 
-        // Add collision detection between car and points
-        this.physics.add.overlap(car.sprite, this.points, hitPoint, null, this);
+        // // Add collision detection between car and points
+        // this.physics.add.overlap(car.sprite, this.points, hitPoint, null, this);
       }
 
       function hitPoint(car, point) {
@@ -103,16 +112,17 @@
         acceleration = 0.1;
         deceleration = 0.01;
         brakingPower = 0.1;
-        turningSpeed = 0.2;
-        maxTurningAngle = 5;
-        minTurningAngle = -5;
+        turningSpeed = 0.5;
+        turningDamper = 0.1;
+        maxTurningAngle = 4;
+        minTurningAngle = -4;
 
-        constructor(scene, x, y, texture) {
+        constructor(scene, x, y, texture, scale) {
           this.scene = scene;
 
           this.container = scene.add.container(x, y);
 
-          this.sprite = scene.add.sprite(0, 0, texture).setScale(0.1);
+          this.sprite = scene.add.sprite(0, 0, texture).setScale(scale);
           this.scene.physics.world.enable(this.sprite);
           this.container.add(this.sprite);
 
@@ -198,12 +208,23 @@
               this.minTurningAngle,
               this.currentTurningAngle - this.turningSpeed
             );
-          }
-          if (cursors.right.isDown) {
+          } else if (cursors.right.isDown) {
             this.currentTurningAngle = Math.min(
               this.maxTurningAngle,
               this.currentTurningAngle + this.turningSpeed
             );
+          } else {
+            if (this.currentTurningAngle > 0) {
+              this.currentTurningAngle = Math.max(
+                0,
+                this.currentTurningAngle - this.turningDamper
+              );
+            } else if (this.currentTurningAngle < 0) {
+              this.currentTurningAngle = Math.min(
+                0,
+                this.currentTurningAngle + this.turningDamper
+              );
+            }
           }
           this.container.angle +=
             this.currentTurningAngle * (this.speed / this.maxSpeed);
@@ -217,11 +238,26 @@
         }
         toggleRightIndicator() {
           console.log("toggleRightIndicator ");
+          if (this.leftIndicatorOn) {
+            this.leftIndicatorOn = false;
+          }
           this.rightIndicatorOn = !this.rightIndicatorOn;
         }
         toggleLeftIndicator() {
           console.log("toggleLeftIndicator ");
+          if (this.rightIndicatorOn) {
+            this.rightIndicatorOn = false;
+          }
           this.leftIndicatorOn = !this.leftIndicatorOn;
+        }
+      }
+
+      class RoundaboutImage {
+        constructor(scene, x, y, texture, scale) {
+          this.scene = scene;
+          this.x = x;
+          this.y = y;
+          this.sprite = scene.add.sprite(x, y, texture).setScale(scale);
         }
       }
 
