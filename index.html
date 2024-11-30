@@ -41,10 +41,9 @@
       let scoreText;
 
       function preload() {
-        this.load.image("car", "assets/car.png", {
-          width: 10,
-          height: 20,
-        });
+        this.load.image("car", "assets/car.png");
+        this.load.image("point", "assets/point.png");
+        this.load.image("indicator", "assets/indicator.png");
       }
 
       function create() {
@@ -64,8 +63,34 @@
           fill: "#000",
         });
 
-        // Setup keyboard controls
         cursors = this.input.keyboard.createCursorKeys();
+
+        this.input.keyboard.on("keydown-I", () => {
+          car.toggleLeftIndicator();
+        });
+        this.input.keyboard.on("keydown-O", () => {
+          car.toggleRightIndicator();
+        });
+
+        // Create points around the roundabout
+        this.points = this.physics.add.group({
+          key: "point",
+          repeat: 7,
+          setXY: { x: 400, y: 300, stepX: 100, stepY: 0 },
+        });
+
+        this.points.children.iterate(function (child) {
+          child.setCircle(2); // Set the size of the points
+        });
+
+        // Add collision detection between car and points
+        this.physics.add.overlap(car.sprite, this.points, hitPoint, null, this);
+      }
+
+      function hitPoint(car, point) {
+        point.destroy();
+        score += 10;
+        scoreText.setText("Score: " + score);
       }
 
       function update() {
@@ -83,11 +108,66 @@
         minTurningAngle = -5;
 
         constructor(scene, x, y, texture) {
-          this.sprite = scene.add.sprite(x, y, texture);
-          this.sprite.setScale(0.1);
-          this.sprite.angle = 0; // Start facing north
+          this.scene = scene;
+
+          this.container = scene.add.container(x, y);
+
+          this.sprite = scene.add.sprite(0, 0, texture).setScale(0.1);
+          this.scene.physics.world.enable(this.sprite);
+          this.container.add(this.sprite);
+
+          this.sprite.angle = 0;
           this.speed = 0;
           this.currentTurningAngle = 0;
+
+          this.rightIndicatorOn = false;
+          this.leftIndicatorOn = false;
+
+          this.indicatorTimer = setInterval(
+            this.blinkIndicators.bind(this),
+            500
+          );
+
+          this.leftIndicators = scene.add.container(0, 0).setVisible(false);
+          this.rightIndicators = scene.add.container(0, 0).setVisible(false);
+
+          this.frontLeftIndicator = scene.add
+            .sprite(-15, -30, "indicator")
+            .setScale(0.1);
+
+          this.backLeftIndicator = scene.add
+            .sprite(-15, 30, "indicator")
+            .setScale(0.1);
+
+          this.leftIndicators.add(this.frontLeftIndicator);
+          this.leftIndicators.add(this.backLeftIndicator);
+
+          this.frontRightIndicator = scene.add
+            .sprite(15, -30, "indicator")
+            .setScale(0.1);
+
+          this.backRightIndicator = scene.add
+            .sprite(15, 30, "indicator")
+            .setScale(0.1);
+
+          this.rightIndicators.add(this.frontRightIndicator);
+          this.rightIndicators.add(this.backRightIndicator);
+
+          this.container.add(this.leftIndicators);
+          this.container.add(this.rightIndicators);
+
+          this.scene.physics.world.enable(this.container);
+          this.container.body.setSize(this.sprite.width, this.sprite.height);
+        }
+
+        blinkIndicators() {
+          if (this.rightIndicatorOn)
+            this.rightIndicators.setVisible(!this.rightIndicators.visible);
+          else this.rightIndicators.setVisible(false);
+
+          if (this.leftIndicatorOn)
+            this.leftIndicators.setVisible(!this.leftIndicators.visible);
+          else this.leftIndicators.setVisible(false);
         }
 
         update(cursors) {
@@ -107,9 +187,9 @@
 
           // Apply movement with current speed
           if (this.speed > 0) {
-            const rad = Phaser.Math.DegToRad(this.sprite.angle - 90);
-            this.sprite.x += Math.cos(rad) * this.speed;
-            this.sprite.y += Math.sin(rad) * this.speed;
+            const rad = Phaser.Math.DegToRad(this.container.angle - 90);
+            this.container.x += Math.cos(rad) * this.speed;
+            this.container.y += Math.sin(rad) * this.speed;
           }
 
           // Handle turning
@@ -125,8 +205,23 @@
               this.currentTurningAngle + this.turningSpeed
             );
           }
-          this.sprite.angle +=
+          this.container.angle +=
             this.currentTurningAngle * (this.speed / this.maxSpeed);
+        }
+
+        setRightIndicator(visible) {
+          this.rightIndicatorOn = visible;
+        }
+        setLeftIndicator(visible) {
+          this.leftIndicatorOn = visible;
+        }
+        toggleRightIndicator() {
+          console.log("toggleRightIndicator ");
+          this.rightIndicatorOn = !this.rightIndicatorOn;
+        }
+        toggleLeftIndicator() {
+          console.log("toggleLeftIndicator ");
+          this.leftIndicatorOn = !this.leftIndicatorOn;
         }
       }
 
