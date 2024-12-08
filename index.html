@@ -23,10 +23,14 @@
   <body>
     <div>
       <h1>Roundabout Trainer</h1>
-      <p>Controls:</p>
-      Move: Arrow keys. 'Z' to toggle left indicator, 'X' toggle right
-      indicator.
+      <p>
+        Move: Arrow keys. 'Z' to toggle left indicator, 'X' toggle right
+        indicator.
+      </p>
+
+      <button onclick="resetGame()">reset</button>
       <div id="game"></div>
+
       <div></div>
       <div id="score-modal">
         <div id="scores"></div>
@@ -60,12 +64,18 @@
 
       const game = new Phaser.Game(config);
       let car;
+      let route;
 
       function preload() {
         this.load.image("car", "assets/car.png");
         this.load.image("point", "assets/point.png");
         this.load.image("indicator", "assets/indicator.png");
         this.load.image("roundabout", "assets/roundabout.png");
+      }
+
+      function resetGame() {
+        car.reset();
+        route.reset();
       }
 
       function create() {
@@ -79,7 +89,7 @@
 
         car = new Car(this, 355, 550, "car", (scale = 0.07));
 
-        const route = new Route(
+        route = new Route(
           this,
           [
             [360, 453.5, [IndicatorState.LEFT]],
@@ -97,21 +107,8 @@
           car
         );
 
-        const resetButton = this.add
-          .text(700, 16, "Reset", {
-            fontSize: "32px",
-            fill: "#000",
-          })
-          .setInteractive();
-
-        resetButton.on("pointerdown", () => {
-          car.reset();
-          route.reset();
-        });
-
         this.input.keyboard.on("keydown-SPACE", () => {
-          car.reset();
-          route.reset();
+          resetGame();
         });
 
         let clickCoordinates = [];
