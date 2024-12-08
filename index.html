@@ -6,21 +6,44 @@
     <style>
       body {
         margin: 0;
-        display: flex;
+        text-align: center;
+        /* display: flex;
         justify-content: center;
-        align-items: center;
-        height: 100vh;
+        align-items: center; */
+        /* height: 100vh; */
         background: #f0f0f0;
+        font-family: sans-serif;
+      }
+
+      #score-modal {
+        display: none;
       }
     </style>
   </head>
   <body>
+    <div>
+      <div id="game"></div>
+      <div>
+        <p></p>
+        Z: Toggle left indicator , X: Toggle right indicator
+      </div>
+      <div id="score-modal">
+        <div id="scores"></div>
+      </div>
+    </div>
+
     <script>
+      const EDITOR = false;
+      let waypoints = [];
+      let selectedWaypoint = null;
+
       const config = {
         type: Phaser.AUTO,
         width: 800,
         height: 600,
-        backgroundColor: "#FFFFFF", // Add this line to set white background
+        parent: "game",
+
+        backgroundColor: "#FFFFFF",
         physics: {
           default: "arcade",
           arcade: {
@@ -53,15 +76,22 @@
           0.5
         );
 
-        car = new Car(this, 400, 550, "car", (scale = 0.07));
+        car = new Car(this, 355, 550, "car", (scale = 0.07));
 
         const route = new Route(
           this,
           [
-            [400, 300],
-            [400, 100],
-            [100, 300],
-            [700, 300],
+            [360, 453.5, [IndicatorState.LEFT]],
+            [358, 427.5, [IndicatorState.LEFT]],
+            [350, 394.5, [IndicatorState.LEFT]],
+            [340, 376.5, [IndicatorState.LEFT]],
+            [324, 350.5, [IndicatorState.LEFT]],
+            [310, 336.5, [IndicatorState.LEFT]],
+            [289, 323.5, [IndicatorState.LEFT]],
+            [256, 314.5, [IndicatorState.LEFT]],
+            [221, 309.5, [IndicatorState.LEFT, IndicatorState.OFF]],
+            [192, 304.5, [IndicatorState.LEFT, IndicatorState.OFF]],
+            [155, 300.5, [IndicatorState.LEFT, IndicatorState.OFF]],
           ],
           car
         );
@@ -77,12 +107,111 @@
           car.reset();
           route.reset();
         });
+
+        let clickCoordinates = [];
+
+        // Add event listener for pointer down events
+        this.input.on("pointerdown", (pointer) => {
+          const x = pointer.x;
+          const y = pointer.y;
+          clickCoordinates.push([x, y]);
+          console.log(clickCoordinates);
+        });
+
+        if (EDITOR) {
+          this.input.on("pointerdown", (pointer) => {
+            if (selectedWaypoint) {
+              // selectedWaypoint.x = pointer.x;
+              // selectedWaypoint.y = pointer.y;
+              // selectedWaypoint = null;
+            } else {
+              const waypoint = this.add
+                .circle(
+                  pointer.x,
+                  pointer.y,
+                  5,
+                  IndicatorStateColors[IndicatorState.OFF]
+                )
+                .setInteractive();
+              waypoint.expectedState = IndicatorState.OFF;
+              waypoint.on("pointerdown", () => {
+                // Toggle through the states and change the color
+                if (waypoint.expectedState === IndicatorState.OFF) {
+                  waypoint.expectedState = IndicatorState.LEFT;
+                  waypoint.setFillStyle(
+                    IndicatorStateColors[IndicatorState.LEFT]
+                  );
+                } else if (waypoint.expectedState === IndicatorState.LEFT) {
+                  waypoint.expectedState = IndicatorState.RIGHT;
+                  waypoint.setFillStyle(
+                    IndicatorStateColors[IndicatorState.RIGHT]
+                  );
+                } else {
+                  waypoint.expectedState = IndicatorState.OFF;
+                  waypoint.setFillStyle(
+                    IndicatorStateColors[IndicatorState.OFF]
+                  );
+                }
+                selectedWaypoint = waypoint;
+              });
+              waypoints.push(waypoint);
+            }
+          });
+
+          this.input.keyboard.on("keydown-D", () => {
+            if (selectedWaypoint) {
+              selectedWaypoint.destroy();
+              waypoints = waypoints.filter(
+                (waypoint) => waypoint !== selectedWaypoint
+              );
+              selectedWaypoint = null;
+            }
+          });
+
+          this.input.keyboard.on("keydown-S", () => {
+            const routeConfig = waypoints.map((waypoint) => [
+              waypoint.x,
+              waypoint.y,
+              [waypoint.expectedState],
+            ]);
+            console.log("Route Config:", JSON.stringify(routeConfig));
+          });
+        }
       }
 
       function update() {
         if (!car) return;
         car.update();
       }
+
+      function showScoreModal(score) {
+        const scoreModal = document.getElementById("score-modal");
+        scoreModal.style.display = "block";
+
+        const scores = document.getElementById("scores");
+        scores.innerHTML = `Score: ${score}%`;
+      }
+
+      const colors = {
+        RED: 0xff0000,
+        GREEN: 0x00ff00,
+        BLUE: 0x0000ff,
+        YELLOW: 0xffff00,
+        BLACK: 0x000000,
+        WHITE: 0xffffff,
+      };
+
+      const IndicatorState = {
+        OFF: "off",
+        LEFT: "left",
+        RIGHT: "right",
+      };
+
+      const IndicatorStateColors = {
+        [IndicatorState.LEFT]: colors.BLUE,
+        [IndicatorState.RIGHT]: colors.RED,
+        [IndicatorState.OFF]: colors.GREEN,
+      };
 
       class Car {
         maxSpeed = 2;
@@ -96,7 +225,6 @@
 
         constructor(scene, x, y, texture, scale) {
           this.scene = scene;
-
           this.cursors = scene.input.keyboard.createCursorKeys();
 
           scene.input.keyboard.on(
@@ -122,6 +250,8 @@
 
           this.rightIndicatorOn = false;
           this.leftIndicatorOn = false;
+          this.indicatorState = IndicatorState.OFF;
+          this.controlsEnabled = true;
 
           this.indicatorTimer = setInterval(
             this.blinkIndicators.bind(this),
@@ -160,6 +290,14 @@
           this.container.body.setSize(this.sprite.width, this.sprite.height);
         }
 
+        disableCarControls() {
+          this.controlsEnabled = false;
+        }
+
+        enableCarControls() {
+          this.controlsEnabled = true;
+        }
+
         blinkIndicators() {
           if (this.rightIndicatorOn)
             this.rightIndicators.setVisible(!this.rightIndicators.visible);
@@ -180,7 +318,7 @@
 
         update() {
           // Handle acceleration
-          if (this.cursors.up.isDown) {
+          if (this.cursors.up.isDown && this.controlsEnabled) {
             this.speed = Math.min(
               this.maxSpeed,
               this.speed + this.acceleration
@@ -189,7 +327,7 @@
             this.speed = Math.max(0, this.speed - this.deceleration);
           }
           // Handle braking
-          if (this.cursors.down.isDown) {
+          if (this.cursors.down.isDown || !this.controlsEnabled) {
             this.speed = Math.max(0, this.speed - this.brakingPower);
           }
 
@@ -228,25 +366,39 @@
             this.currentTurningAngle * (this.speed / this.maxSpeed);
         }
 
-        setRightIndicator(visible) {
-          this.rightIndicatorOn = visible;
-        }
-        setLeftIndicator(visible) {
-          this.leftIndicatorOn = visible;
-        }
+        // setRightIndicator(visible) {
+        //   this.rightIndicatorOn = visible;
+        // }
+        // setLeftIndicator(visible) {
+        //   this.leftIndicatorOn = visible;
+        // }
+
         toggleRightIndicator() {
           console.log("toggleRightIndicator ");
           if (this.leftIndicatorOn) {
             this.leftIndicatorOn = false;
           }
           this.rightIndicatorOn = !this.rightIndicatorOn;
+
+          if (this.rightIndicatorOn) {
+            this.indicatorState = IndicatorState.RIGHT;
+          } else {
+            this.indicatorState = IndicatorState.OFF;
+          }
         }
+
         toggleLeftIndicator() {
           console.log("toggleLeftIndicator ");
           if (this.rightIndicatorOn) {
             this.rightIndicatorOn = false;
           }
           this.leftIndicatorOn = !this.leftIndicatorOn;
+
+          if (this.leftIndicatorOn) {
+            this.indicatorState = IndicatorState.LEFT;
+          } else {
+            this.indicatorState = IndicatorState.OFF;
+          }
         }
       }
 
@@ -266,18 +418,69 @@
           this.scene.physics.add.existing(this.circle);
           this.circle.body.setImmovable(true);
 
+          this.expectedCarStatesWhenEntered = [];
+          this.carStateWhenEntered = null;
+
+          this.onCollideCallback = null;
+
           scene.physics.add.overlap(car.sprite, this.circle, () => {
             this.onCollide();
           });
         }
 
+        setColor(color) {
+          this.circle.fillColor = color;
+        }
+
+        setVisible(visible) {
+          this.circle.visible = visible;
+        }
+
+        setExpectedCarStatesWhenEntered(expectedCarStatesWhenEntered) {
+          this.expectedCarStatesWhenEntered = expectedCarStatesWhenEntered;
+        }
+
+        carHitWaypointWithCorrectState() {
+          if (this.carStateWhenEntered == null) return false;
+
+          for (let i = 0; i < this.expectedCarStatesWhenEntered.length; i++) {
+            console.log(
+              "this.expectedCarStatesWhenEntered[i]",
+              this.expectedCarStatesWhenEntered[i]
+            );
+
+            if (
+              this.expectedCarStatesWhenEntered[i] ===
+              this.carStateWhenEntered.indicatorState
+            ) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+
         onCollide() {
           console.log("Collided!");
-          this.circle.visible = false;
+          // this.circle.visible = false;
+
+          if (this.carStateWhenEntered == null) {
+            // collected car speed and indicator state
+            this.carStateWhenEntered = {
+              speed: car.speed,
+              indicatorState: car.indicatorState,
+            };
+            console.log("carStateWhenEntered", this.carStateWhenEntered);
+
+            if (this.onCollideCallback) {
+              this.onCollideCallback();
+            }
+          }
         }
 
         reset() {
-          this.circle.visible = true;
+          this.carStateWhenEntered = null;
+          this.circle.visible = false;
         }
       }
 
@@ -288,25 +491,82 @@
           this.waypointCoordinates = waypointCoordinates;
           this.waypoints = [];
           this.createWaypoints();
+
+          this.setWaypointColors();
+          this.lastWaypoint = this.getLastWaypoint();
+          this.lastWaypoint.setColor(colors.GREEN);
+          this.lastWaypoint.setVisible(true);
+
+          this.lastWaypoint.onCollideCallback = () => {
+            console.log("🏁 lastWaypointReached");
+            // this.reset();
+            this.showWaypoints();
+            this.setWaypointColorsForCarEnteredStateCorrect();
+            car.disableCarControls();
+            const score = this.calculateScorePercentage();
+            showScoreModal(score);
+          };
+        }
+
+        calculateScorePercentage() {
+          let score = 0;
+          for (let i = 0; i < this.waypoints.length; i++) {
+            if (this.waypoints[i].carHitWaypointWithCorrectState()) {
+              score++;
+            }
+          }
+          return Math.round((score / this.waypoints.length) * 100);
         }
 
         createWaypoints() {
           for (let i = 0; i < this.waypointCoordinates.length; i++) {
-            this.waypoints.push(
-              new Waypoint(
-                this.scene,
-                this.waypointCoordinates[i][0],
-                this.waypointCoordinates[i][1],
-                this.car
-              )
+            const newWaypoint = new Waypoint(
+              this.scene,
+              this.waypointCoordinates[i][0],
+              this.waypointCoordinates[i][1],
+              this.car
             );
+            newWaypoint.setExpectedCarStatesWhenEntered(
+              this.waypointCoordinates[i][2]
+            );
+            newWaypoint.setVisible(false);
+            this.waypoints.push(newWaypoint);
           }
+        }
+
+        setWaypointColorsForCarEnteredStateCorrect() {
+          for (let i = 0; i < this.waypoints.length; i++) {
+            if (this.waypoints[i].carHitWaypointWithCorrectState()) {
+              this.waypoints[i].setColor(colors.GREEN);
+            } else {
+              this.waypoints[i].setColor(colors.RED);
+            }
+          }
+        }
+
+        setWaypointColors() {
+          for (let i = 0; i < this.waypoints.length; i++) {
+            this.waypoints[i].setColor(colors.RED);
+          }
+        }
+
+        showWaypoints() {
+          for (let i = 0; i < this.waypoints.length; i++) {
+            this.waypoints[i].setVisible(true);
+          }
+        }
+
+        getLastWaypoint() {
+          return this.waypoints[this.waypoints.length - 1];
         }
 
         reset() {
           for (let i = 0; i < this.waypoints.length; i++) {
             this.waypoints[i].reset();
           }
+          this.lastWaypoint.setColor(colors.GREEN);
+          this.lastWaypoint.setVisible(true);
+          this.car.enableCarControls();
         }
       }
     </script>
