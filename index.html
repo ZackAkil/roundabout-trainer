@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Roundabout Training</title>
+    <title>Roundabout Trainer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
     <style>
       body {
@@ -22,11 +22,12 @@
   </head>
   <body>
     <div>
+      <h1>Roundabout Trainer</h1>
+      <p>Controls:</p>
+      Move: Arrow keys. 'Z' to toggle left indicator, 'X' toggle right
+      indicator.
       <div id="game"></div>
-      <div>
-        <p></p>
-        Z: Toggle left indicator , X: Toggle right indicator
-      </div>
+      <div></div>
       <div id="score-modal">
         <div id="scores"></div>
       </div>
@@ -43,7 +44,7 @@
         height: 600,
         parent: "game",
 
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#f0f0f0",
         physics: {
           default: "arcade",
           arcade: {
@@ -104,6 +105,11 @@
           .setInteractive();
 
         resetButton.on("pointerdown", () => {
+          car.reset();
+          route.reset();
+        });
+
+        this.input.keyboard.on("keydown-SPACE", () => {
           car.reset();
           route.reset();
         });
@@ -314,6 +320,8 @@
           this.container.angle = 0;
           this.speed = 0;
           this.currentTurningAngle = 0;
+          this.leftIndicatorOn = false;
+          this.rightIndicatorOn = false;
         }
 
         update() {
