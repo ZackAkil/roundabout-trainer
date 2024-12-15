@@ -12,22 +12,10 @@
     />
     <meta name="author" content="Zack Akil" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google Tag Manager -->
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-TPQ5CVKL");
-    </script>
-    <!-- End Google Tag Manager -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
     <script src="game.js"></script>
+    <script src="consent.js"></script>
     <style>
       body {
         margin: 0;
@@ -43,9 +31,38 @@
       #score-modal {
         display: none;
       }
+
+      #cookie-consent-banner {
+        position: relative;
+
+        background: #333;
+        color: #fff;
+        padding: 20px;
+        text-align: center;
+
+        font-size: 1.2em;
+      }
+
+      #cookie-consent-banner button {
+        margin: 0 5px;
+        padding: 5px 10px;
+        background: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #cookie-consent-banner button:hover {
+        background: #0056b3;
+      }
     </style>
   </head>
   <body>
+    <div id="cookie-consent-banner">
+      This website uses cookies for user analysis.
+      <button id="agree-button">Agree</button>
+      <button id="disagree-button">Disagree</button>
+    </div>
     <div>
       <h1>Roundabout Trainer</h1>
       <p>
@@ -147,8 +164,8 @@
         [326.5, 285.125, [IndicatorState.RIGHT]],
         [331.5, 259.125, [IndicatorState.RIGHT]],
         [346.5, 236.125, [IndicatorState.RIGHT]],
-        [363.5, 224.125, [IndicatorState.RIGHT]],
-        [392.5, 222.125, [IndicatorState.LEFT]],
+        [363.5, 224.125, [IndicatorState.RIGHT, IndicatorState.LEFT]],
+        [392.5, 222.125, [IndicatorState.LEFT, IndicatorState.RIGHT]],
         [421.5, 225.125, [IndicatorState.LEFT]],
         [446.5, 235.125, [IndicatorState.LEFT]],
         [469.5, 246.125, [IndicatorState.LEFT]],
@@ -171,7 +188,7 @@
         [364.5, 225.125, [IndicatorState.RIGHT]],
         [397.5, 220.125, [IndicatorState.RIGHT]],
         [429.5, 226.125, [IndicatorState.RIGHT]],
-        [447.5, 251.125, [IndicatorState.RIGHT]],
+        [447.5, 251.125, [IndicatorState.RIGHT, IndicatorState.LEFT]],
         [455.5, 278.125, [IndicatorState.LEFT]],
         [456.5, 307.125, [IndicatorState.LEFT]],
         [448.5, 330.125, [IndicatorState.LEFT]],
@@ -189,14 +206,4 @@
       };
     </script>
   </body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript
-    ><iframe
-      src="https://www.googletagmanager.com/ns.html?id=GTM-TPQ5CVKL"
-      height="0"
-      width="0"
-      style="display: none; visibility: hidden"
-    ></iframe
-  ></noscript>
-  <!-- End Google Tag Manager (noscript) -->
 </html>
